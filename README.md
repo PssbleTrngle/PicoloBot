@@ -1,5 +1,5 @@
 # Picolo Bot
-![Tests](https://github.com/PssbleTrngle/PicoloBot/workflows/Tests/badge.svg)
+![Tests](https://github.com/PssbleTrngle/PicoloBot/workflows/Tests/badge.svg?branch=develop)
 
 This is a discord bot to play the drinking game picolo with your friends
 
