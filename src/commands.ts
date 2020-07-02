@@ -2,7 +2,7 @@ import { Message, User, Guild, GuildMember, TextChannel } from "discord.js";
 import chalk from "chalk";
 import Bot from "./bot";
 import { allowedNodeEnvironmentFlags } from "process";
-import DiscordBot, { IEmbed } from "./Bot";
+import DiscordBot, { IEmbed } from "./bot";
 import Config from "./config";
 import Game from "./game";
 import Stats from "./database/models/Stats";
