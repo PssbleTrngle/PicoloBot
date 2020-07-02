@@ -1,5 +1,5 @@
 import { ChannelResolvable, Client, DMChannel, Guild, GuildResolvable, Message, TextChannel, User, UserResolvable } from 'discord.js';
-import { execute, UserError } from './Commands';
+import { execute, UserError } from './commands';
 import Config, { Level, Levels, shouldLog } from './config';
 import { print } from './console';
 import Game from './game';
