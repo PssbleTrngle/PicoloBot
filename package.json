@@ -24,7 +24,7 @@
       "run": "node build/src/index.js",
       "start": "ts-node src/index.ts",
       "build": "tsc",
-      "test": "eslint src/**"
+      "lint": "eslint src/**"
    },
    "devDependencies": {
       "@typescript-eslint/eslint-plugin": "^3.5.0",
