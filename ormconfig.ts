@@ -1,6 +1,7 @@
 import { print } from './src/console';
 import './src/config';
 import fs from 'fs'
+import path from 'path'
 
 print('debug', 'Config Loaded');
 
@@ -9,9 +10,11 @@ const files = (folder: string) => [ts ? `src/database/${folder}/**/*.ts` : `buil
 
 const flush = process.env.DB_FLUSH === 'true'
 const storage = process.env.DB_STORAGE;
-if(flush && storage) {
+
+if (flush && storage) {
    print('info', `Flushing Database`)
-   fs.unlinkSync('./' + storage)
+   const f = path.resolve(__dirname, storage);
+   if (fs.existsSync(f)) fs.unlinkSync(f)
 }
 
 export default {

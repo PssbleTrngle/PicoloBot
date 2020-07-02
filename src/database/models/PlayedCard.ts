@@ -1,20 +1,12 @@
 import { User } from "discord.js";
-import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { BaseEntity, Column, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import Bot, { IEmbed } from "../../bot";
 import { UserError } from "../../commands";
 import { print } from "../../console";
-import Game from "../../game";
 import Card, { Category } from "./Card";
-import Input, { Types as InputTypes, TypeFunction } from "./Input";
-import { IValue, ITarget } from "./Effect";
-import { throws } from "assert";
-import { config } from "dotenv/types";
-
-const Colors = {
-    [Category.GAME]: 0x099c18,
-    [Category.NONE]: 0x6379cf,
-    [Category.VIRUS]: 0xcfae2b,
-}
+import { ITarget, IValue } from "./Effect";
+import Game from "./Game";
+import Input, { TypeFunction, Types as InputTypes } from "./Input";
 
 function fromArray(s?: any): string {
     if (!s) return '';
@@ -45,11 +37,11 @@ export default class PlayedCard extends BaseEntity {
     @PrimaryGeneratedColumn()
     id!: number;
 
+    @OneToOne(() => Game, g => g.currentCard, { eager: true, onDelete: 'SET NULL' })
+    game!: Game;
+
     @ManyToOne(() => Card, { eager: true })
     card!: Card
-
-    @Column({ type: 'text', unique: true })
-    channel!: string
 
     @Column({ type: 'text', transformer: arrayTransformer })
     users!: string[]
@@ -66,14 +58,16 @@ export default class PlayedCard extends BaseEntity {
     values!: number[]
 
     static play(card: Card, game: Game): PlayedCard {
+
         const requiredUsers = count('$user', card.text)
-        const users = game.getUsers(requiredUsers);
+        const users = game.randomUsers(requiredUsers);
+
         const values = card.effects
             .filter(e => !!e.value)
             .map(e => e.value as IValue)
             .map(({ min, max }) => Math.floor(Math.random() * (max - min) + min))
 
-        return PlayedCard.create({ card, channel: game.getChannel(), users, values });
+        return PlayedCard.create({ card, game, users, values });
     }
 
     conditionMet(condition?: string): boolean {
@@ -156,7 +150,7 @@ export default class PlayedCard extends BaseEntity {
                 Bot.log('warning', `Invalid card **${this.card.id}** has no possible selection at input ${this.inputs.length}`)
             }
 
-            Bot.sendMessage(this.channel, {
+            Bot.sendMessage(this.game.channel, {
                 title: nextInput.question ?? 'Waiting for your descision',
                 user: await Bot.parseUser(by),
                 level: 'info',
@@ -175,7 +169,7 @@ export default class PlayedCard extends BaseEntity {
             if (!this.parseSelection(nextInput.by)(by))
                 throw new UserError('You are not allowed to choose', true)
 
-            const value = await parse(given, Game.findOrError(this.channel))
+            const value = await parse(given, await Game.findOrError(this.game.channel))
             print('debug', `Card parsed input '${given} -> '${value}' with type ${nextInput.type}`);
 
             if (value instanceof User) {
@@ -185,7 +179,7 @@ export default class PlayedCard extends BaseEntity {
 
             this.inputs.push(toString(value));
 
-            Bot.sendMessage(this.channel, {
+            Bot.sendMessage(this.game.channel, {
                 title: value instanceof User ? `${value.username} has been chosen` : `You chose *${given}*`,
                 user: by,
             })
@@ -222,6 +216,12 @@ export default class PlayedCard extends BaseEntity {
 
         const text = transformers.reduce((text, t) => t(text), this.card.text);
 
+        const Colors = {
+            [Category.GAME]: 0x099c18,
+            [Category.NONE]: 0x6379cf,
+            [Category.VIRUS]: 0xcfae2b,
+        }
+
         return {
             user: users.length === 1 ? users[0] : undefined,
             message: text,
@@ -257,7 +257,7 @@ export default class PlayedCard extends BaseEntity {
                 return { ...field, [key]: t?.map(t => `<@${t}>`).join('\n') }
             }, {});
 
-        Bot.sendMessage(this.channel, {
+        Bot.sendMessage(this.game.channel, {
             title: 'Card effects',
             level: 'info',
             fields

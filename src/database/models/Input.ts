@@ -1,11 +1,9 @@
-import { BaseEntity, Entity, Column, OneToMany, PrimaryGeneratedColumn, ManyToMany, ManyToOne } from "typeorm"
-import Like from "./Like";
-import Card from "./Card";
-import Game from "../../game";
-import Bot from "../../bot";
 import { User } from "discord.js";
+import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import Bot from "../../bot";
 import { UserError } from "../../commands";
-import PlayedCard from "./PlayedCard";
+import Card from "./Card";
+import Game from "./Game";
 
 const YES = ['positive', 'positiv', 'true', 'yes', 'yup', 'jap', 'ja']
 const NO = ['negativ', 'negative', 'false', 'no', 'nope', 'nah']

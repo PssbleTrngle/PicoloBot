@@ -1,7 +1,7 @@
 {
-   "name": "server",
+   "name": "picolo-bot",
    "version": "0.0.1",
-   "description": "Diary server backend",
+   "description": "Picolo bot for discord",
    "dependencies": {
       "@types/chalk": "^2.2.0",
       "@types/dotenv": "^8.2.0",

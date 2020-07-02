@@ -1,11 +1,8 @@
-import { Message, User, Guild, GuildMember, TextChannel } from "discord.js";
-import chalk from "chalk";
-import Bot from "./bot";
-import { allowedNodeEnvironmentFlags } from "process";
-import DiscordBot, { IEmbed } from "./bot";
+import { Message, TextChannel } from "discord.js";
+import Bot, { IEmbed } from "./bot";
 import Config from "./config";
-import Game from "./game";
 import Stats from "./database/models/Stats";
+import Game from "./database/models/Game";
 
 interface Parameters {
     [key: string]: {
@@ -131,8 +128,8 @@ const Commands: { [key: string]: Command } = {
     join: {
         help: () => 'Join a game',
         execute: async (_, { channel, author }) => {
-            const game = Game.find(channel);
-            if (!game) throw new UserError('There is no game in this channel')
+            const game = await Game.findOrError(channel.id);
+            
             await game.join(author);
             return {
                 title: `${author.username} joined the game ${game.playerProgress()}`,
@@ -150,7 +147,8 @@ const Commands: { [key: string]: Command } = {
         execute: async ({ user }, { channel, author, guild }) => {
             if (guild?.ownerID !== author.id) throw new UserError('You do not have this permission')
 
-            const game = Game.find(channel);
+            const game = await Game.findOrError(channel.id);
+
             const target = await Bot.parseUser(user);
             if (!target) throw new UserError(`*${user}* could not be found`)
 
@@ -165,8 +163,8 @@ const Commands: { [key: string]: Command } = {
     leave: {
         help: () => 'Leave a game',
         execute: async (_, { channel, author }) => {
-            const game = Game.find(channel);
-            if (!game) throw new UserError('There is no game in this channel')
+            const game = await Game.findOrError(channel.id);
+
             await game.leave(author);
             return {
                 title: `${author.username} left the game ${game.playerProgress()}`,
@@ -178,7 +176,7 @@ const Commands: { [key: string]: Command } = {
     create: {
         help: () => 'Create a game',
         execute: async (_, { channel, author }) => {
-            await Game.create(channel, author)
+            await Game.attempCreate(channel, author)
 
             return {
                 title: `${author.username} has created a game`,
@@ -189,7 +187,7 @@ const Commands: { [key: string]: Command } = {
     start: {
         help: () => 'Start the game',
         execute: async (_, { channel, author }) => {
-            const game = Game.findOrError(channel);
+            const game = await Game.findOrError(channel.id);
             await game.start();
 
             return {
@@ -228,7 +226,7 @@ const Commands: { [key: string]: Command } = {
         execute: async (_, { channel, author, guild }) => {
             if (guild?.ownerID !== author.id) throw new UserError('You do not have this permission')
 
-            const game = Game.findOrError(channel);
+            const game = await Game.findOrError(channel.id);
             await game.skipCard();
 
             return {

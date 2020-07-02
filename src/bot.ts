@@ -2,8 +2,7 @@ import { ChannelResolvable, Client, DMChannel, Guild, GuildResolvable, Message, 
 import { execute, UserError } from './commands';
 import Config, { Level, Levels, shouldLog } from './config';
 import { print } from './console';
-import Game from './game';
-import PlayedCard from './database/models/PlayedCard';
+import Game from './database/models/Game';
 
 export type IEmbed = {
     message?: string | string[],
@@ -104,9 +103,9 @@ class DiscordBot {
         if (!msg.guild) throw new Error('Message without server information');
         if (!execute(msg)) {
 
-            const game = Game.find(msg.channel);
+            const game = await Game.findOne(msg.channel.id);
             if (game) {
-                const playedCard = await game.currentCard();
+                const playedCard = await game.currentCard
 
                 if (playedCard) try {
 
@@ -117,7 +116,7 @@ class DiscordBot {
 
                 } catch (e) {
                     if (e instanceof UserError) {
-                        if(!e.isInput || Config.sendInputErrors) this.sendMessage(msg.channel, { level: 'error', title: e.message,  user: msg.author})
+                        if (!e.isInput || Config.sendInputErrors) this.sendMessage(msg.channel, { level: 'error', title: e.message, user: msg.author })
                     } else {
                         this.logError(e);
                         this.sendMessage(msg.channel, { level: 'error', title: 'An error occured', })
@@ -146,7 +145,7 @@ class DiscordBot {
     }
 
     async parseUser(text?: string) {
-        if(!text) return undefined;
+        if (!text) return undefined;
         const id = text.match(/<@!*(.+)>/);
         if (id) return this.client.users.fetch(id[1]) ?? undefined;
         return this.client.users.resolve(text) ?? undefined;
