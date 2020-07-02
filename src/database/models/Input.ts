@@ -4,7 +4,7 @@ import Card from "./Card";
 import Game from "../../game";
 import Bot from "../../bot";
 import { User } from "discord.js";
-import { UserError } from "../../Commands";
+import { UserError } from "../../commands";
 import PlayedCard from "./PlayedCard";
 
 const YES = ['positive', 'positiv', 'true', 'yes', 'yup', 'jap', 'ja']

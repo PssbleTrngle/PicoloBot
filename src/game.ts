@@ -3,7 +3,7 @@ import Config from "./config";
 import Bot from "./bot";
 import PlayedCard from "./database/models/PlayedCard";
 import Card from "./database/models/Card";
-import { UserError } from "./Commands";
+import { UserError } from "./commands";
 import { print } from "./console";
 
 export default class Game {
@@ -139,7 +139,7 @@ export default class Game {
         await current?.remove();
 
         this.currentTimeout = setTimeout(() => (async () => {
-            
+
             const played = await PlayedCard.play(next, this).save()
             await Bot.sendMessage(this.getChannel(), await played.format())
             await played.printInput();

@@ -1,7 +1,7 @@
 import { User } from "discord.js";
 import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import Bot, { IEmbed } from "../../bot";
-import { UserError } from "../../Commands";
+import { UserError } from "../../commands";
 import { print } from "../../console";
 import Game from "../../game";
 import Card, { Category } from "./Card";
