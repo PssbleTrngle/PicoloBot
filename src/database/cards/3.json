@@ -1,0 +1,17 @@
+{
+    "text": "$user, make up your mind: which player do you think lets their hair down less on a night out, $user or $user? This person must drink $sip sips*",
+    "inputs": [
+        {
+            "type": "user",
+            "by": "$user[0]",
+            "selection": ["$user[1]", "$user[2]"]
+        }
+    ],
+    "effects": [
+        {
+            "target": "$input",
+            "type": "sip",
+            "value": 2
+        }
+    ]
+}

@@ -1,0 +1,28 @@
+{
+    "text": "$user, take $sip sips* of your drink and then hum a song. The first person to guess the song correctly can give out $sip sips*",
+    "category": "game",
+    "inputs": [
+        {
+            "type": "user",
+            "by": "$user",
+            "question": "Who guessed it?"
+        },
+        {
+            "type": "user",
+            "by": "$input[0]",
+            "question": "Who has to drink?"
+        }
+    ],
+    "effects": [
+        {
+            "target": "$user",
+            "type": "sip",
+            "value": 1
+        },
+        {
+            "target": "$input[1]",
+            "type": "sip",
+            "value": 3
+        }
+    ]
+}

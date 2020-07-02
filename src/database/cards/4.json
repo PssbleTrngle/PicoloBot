@@ -1,0 +1,17 @@
+{
+    "text": "Around the room, you have exactly 2 seconds to say a word related to the word said by the previous player. $user choose you word and start! Loser drinks $sip times*",
+    "category": "game",
+    "inputs": [
+        {
+            "type": "user",
+            "selection": "self"
+        }
+    ],
+    "effects": [
+        {
+            "target": "$input",
+            "type": "sip",
+            "value": 4
+        }
+    ]
+}

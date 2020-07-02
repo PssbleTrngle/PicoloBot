@@ -1,0 +1,10 @@
+{
+    "text": "Down your drinks, $user, $user and $user",
+    "category": "bottoms-up",
+    "effects": [
+        {
+            "target": "$user",
+            "type": "ex"
+        }
+    ]
+}

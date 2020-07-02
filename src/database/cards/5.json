@@ -1,0 +1,24 @@
+{
+    "text": "$user, if you've driven in a foreign country, give out $sip sips*. Otherwise drink them",
+    "category": "game",
+    "inputs": [
+        {
+            "type": "boolean"
+        },
+        {
+            "if": "$input[0]",
+            "type": "user"
+        }
+    ],
+    "effects": [
+        {
+            "target": {
+                "condition": "$input[0]",
+                "true": "$input[1]",
+                "false": "$user"
+            },
+            "type": "sip",
+            "value": 2
+        }
+    ]
+}

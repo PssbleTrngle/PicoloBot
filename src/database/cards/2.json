@@ -1,0 +1,16 @@
+{
+    "text": "$user, give out $sip sips* to the person you think is the most clever in the room",
+    "inputs": [
+        {
+            "type": "user",
+            "by": "$user"
+        }
+    ],
+    "effects": [
+        {
+            "target": "$input[0]",
+            "type": "sip",
+            "value": 4
+        }
+    ]
+}

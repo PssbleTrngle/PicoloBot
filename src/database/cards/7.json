@@ -1,0 +1,23 @@
+{
+    "text": "$user, if you have long and beautiful hair you can give out $sip sips*. Otherwise trink them",
+    "inputs": [
+        {
+            "type": "boolean"
+        },
+        {
+            "if": "$input[0]",
+            "type": "user"
+        }
+    ],
+    "effects": [
+        {
+            "target": {
+                "condition": "$input[0]",
+                "true": "$input[1]",
+                "false": "$user"
+            },
+            "type": "sip",
+            "value": 2
+        }
+    ]
+}
