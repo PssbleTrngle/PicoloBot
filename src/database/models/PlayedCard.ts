@@ -1,5 +1,5 @@
 import { User } from "discord.js";
-import { BaseEntity, Column, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { BaseEntity, Column, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn, JoinColumn } from "typeorm";
 import Bot, { IEmbed } from "../../bot";
 import { UserError } from "../../commands";
 import { print } from "../../console";
@@ -57,7 +57,7 @@ export default class PlayedCard extends BaseEntity {
     })
     values!: number[]
 
-    static play(card: Card, game: Game): PlayedCard {
+    static async play(card: Card, game: Game): Promise<PlayedCard> {
 
         const requiredUsers = count('$user', card.text)
         const users = game.randomUsers(requiredUsers);
@@ -67,7 +67,7 @@ export default class PlayedCard extends BaseEntity {
             .map(e => e.value as IValue)
             .map(({ min, max }) => Math.floor(Math.random() * (max - min) + min))
 
-        return PlayedCard.create({ card, game, users, values });
+        return PlayedCard.create({ card, game, users, values }).save();
     }
 
     conditionMet(condition?: string): boolean {
@@ -204,6 +204,13 @@ export default class PlayedCard extends BaseEntity {
 
         const mulReg = /(\d+) ([a-z]+)s\*/i;
 
+        /*
+            Various text transformations, applied in order of the array
+                1. Replace all values in the order given by the effects
+                2. Replace any value text by the last value of the wanted type
+                3. Replace all users by the mention of the choosen user
+                4. Replace all plural mentions ('sips*') having a number in front with the correct singular/plural 
+        */
         const transformers: ((s: string) => string)[] = [
             t => this.values.reduce((text, value, i) => text.replace(`$${this.card.effects[i].type}`, `${value}`), t),
             t => types.reduce((text, t) => text.split(`$${t}`).join(`${lastValues[t] ?? 42}`), t),
@@ -225,7 +232,7 @@ export default class PlayedCard extends BaseEntity {
         return {
             user: users.length === 1 ? users[0] : undefined,
             message: text,
-            title: this.card.category?.toUpperCase(),
+            title: this.card.category === Category.NONE ? undefined : this.card.category.toUpperCase(),
             color: Colors[this.card.category],
         }
     }

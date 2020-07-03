@@ -64,8 +64,9 @@ async function callCommand(message: Message & { channel: TextChannel }, command:
         else Bot.sendMessage(channel, { level: 'success', ...feedback })
 
     } catch (e) {
-        if(!e.isInput || Config.sendInputErrors)  Bot.sendMessage(channel, { level: 'error', title: e.message, user: author });
-        else {
+        if (e instanceof UserError) {
+            if (!e.isInput || Config.sendInputErrors) Bot.sendMessage(channel, { level: 'error', title: e.message, user: author });
+        } else {
             Bot.sendMessage(channel, { level: 'error', title: 'An error has occured', user: author });
             Bot.logError(e);
         }
@@ -129,7 +130,7 @@ const Commands: { [key: string]: Command } = {
         help: () => 'Join a game',
         execute: async (_, { channel, author }) => {
             const game = await Game.findOrError(channel.id);
-            
+
             await game.join(author);
             return {
                 title: `${author.username} joined the game ${game.playerProgress()}`,
@@ -227,10 +228,10 @@ const Commands: { [key: string]: Command } = {
             if (guild?.ownerID !== author.id) throw new UserError('You do not have this permission')
 
             const game = await Game.findOrError(channel.id);
-            await game.skipCard();
+            const skipped = await game.skipCard();
 
             return {
-                title: 'You skipped the current card'
+                title: skipped ? 'You skipped the current card' : 'There was no card to skip'
             }
         }
     }

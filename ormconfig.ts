@@ -20,7 +20,8 @@ if (flush && storage) {
 export default {
    type: process.env.DB_DIALECT,
    database: storage || process.env.DB_NAME,
-   synchronize: flush || process.env.DB_SYNC === 'true',
+   synchronize: false,
+   sync: flush || process.env.DB_SYNC === 'true',
    logging: process.env.DB_LOGGING === 'true',
    entities: files('models'),
    migrations: files('migration'),

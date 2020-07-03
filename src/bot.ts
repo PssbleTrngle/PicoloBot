@@ -116,7 +116,9 @@ class DiscordBot {
 
                 } catch (e) {
                     if (e instanceof UserError) {
-                        if (!e.isInput || Config.sendInputErrors) this.sendMessage(msg.channel, { level: 'error', title: e.message, user: msg.author })
+                        print('debug', `User triggered error: ${e.message}`)
+                        if (!e.isInput || Config.sendInputErrors)
+                            this.sendMessage(msg.channel, { level: 'error', title: e.message, user: msg.author })
                     } else {
                         this.logError(e);
                         this.sendMessage(msg.channel, { level: 'error', title: 'An error occured', })
