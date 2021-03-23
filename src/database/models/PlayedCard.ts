@@ -4,9 +4,10 @@ import Bot, { IEmbed } from "../../bot";
 import { UserError } from "../../commands";
 import { print } from "../../console";
 import Card, { Category } from "./Card";
-import { ITarget, IValue } from "./Effect";
+import { ITarget, IValue, Types as EffectTypes } from "./Effect";
 import Game from "./Game";
 import Input, { TypeFunction, Types as InputTypes } from "./Input";
+import Player from "./Player";
 
 function fromArray(s?: any): string {
     if (!s) return '';
@@ -37,7 +38,7 @@ export default class PlayedCard extends BaseEntity {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @OneToOne(() => Game, g => g.currentCard, { eager: true, onDelete: 'SET NULL' })
+    @OneToOne(() => Game, g => g.currentCard, { eager: true, onDelete: 'CASCADE' })
     game!: Game;
 
     @ManyToOne(() => Card, { eager: true })
@@ -81,7 +82,9 @@ export default class PlayedCard extends BaseEntity {
         return false;
     }
 
-    cardInputs(): Input[] {
+    async cardInputs(): Promise<Input[]> {
+        // Required because typeorm does not load the `PlayedCard` eager relations here :/
+        if (!this.card) await this.reload();
         return this.card.inputs.filter(c => this.conditionMet(c.if))
     }
 
@@ -89,10 +92,11 @@ export default class PlayedCard extends BaseEntity {
      * Checks if the card requires any more interaction or is done
      * @returns Wether the card is done
      */
-    check(): boolean {
-        print('debug', `Input [${this.inputs.length}/${this.cardInputs().length}]`);
+    async check(): Promise<boolean> {
+        const i = await this.cardInputs();
+        print('debug', `Input [${this.inputs.length}/${i.length}]`);
         print('debug', JSON.stringify(this.inputs))
-        return this.cardInputs().length <= this.inputs.length;
+        return i.length <= this.inputs.length;
     }
 
     parseMention(mention?: string): string[] | null {
@@ -136,12 +140,13 @@ export default class PlayedCard extends BaseEntity {
         }).reduce((a, b) => (u: User, by?: User) => a(u, by) || b(u, by), () => false);
     }
 
-    currentInput(): Input {
-        return this.cardInputs().sort((a, b) => a.index - b.index)[this.inputs?.length ?? 0];
+    async currentInput(): Promise<Input> {
+        const i = await this.cardInputs();
+        return i.sort((a, b) => a.index - b.index)[this.inputs?.length ?? 0];
     }
 
     async printInput(): Promise<void> {
-        const nextInput = this.currentInput();
+        const nextInput = await this.currentInput();
 
         if (nextInput) {
             const [by] = this.parseMention(nextInput.by) ?? [];
@@ -159,7 +164,10 @@ export default class PlayedCard extends BaseEntity {
     }
 
     async handleInput(given: string, by: User): Promise<void> {
-        const nextInput = this.currentInput();
+
+        await this.reload();
+        const nextInput = await this.currentInput();
+
         if (nextInput) {
 
             print('debug', `Input ${this.inputs.length}: ${JSON.stringify(nextInput)}`)
@@ -213,7 +221,7 @@ export default class PlayedCard extends BaseEntity {
         */
         const transformers: ((s: string) => string)[] = [
             t => this.values.reduce((text, value, i) => text.replace(`$${this.card.effects[i].type}`, `${value}`), t),
-            t => types.reduce((text, t) => text.split(`$${t}`).join(`${lastValues[t] ?? 42}`), t),
+            t => types.reduce((text: string, t) => text.split(`$${t}`).join(`${lastValues[t] ?? 42}`), t),
             t => this.users.reduce((text, user) => text.replace('$user', `<@${user}>`), t),
             t => new Array(count(mulReg, t)).fill(null).reduce((text: string) => {
                 const [m, c, t] = text.match(mulReg) ?? [];
@@ -253,16 +261,30 @@ export default class PlayedCard extends BaseEntity {
 
     async applyEffects(): Promise<void> {
 
-        const fields = this.card.effects
-            .filter(e => this.conditionMet(e.if))
-            .reduce((field, { target, type }, i) => {
-                const value = this.values[i];
+        // Required because typeorm does not load the `PlayedCard` eager relations here :/
+        if (!this.card.effects) await this.reload()
 
-                const t = this.parseTarget(target);
-                const key = `${value} ${type}${value === 1 ? '' : 's'}`
+        const fields = await Promise.all(
+            this.card.effects
+                .filter(e => this.conditionMet(e.if))
+                .map(async ({ target, type }, i) => {
+                    const value = this.values[i];
 
-                return { ...field, [key]: t?.map(t => `<@${t}>`).join('\n') }
-            }, {});
+                    const t = this.parseTarget(target);
+                    const key = `${value} ${type}${value === 1 ? '' : 's'}`
+
+                    await Promise.all(t.map(async id => {
+                        const player = await Player.findOrCreate(id);
+                        const s = EffectTypes[type].stat;
+                        if (s) {
+                            player.current[s]++;
+                            await player.save();
+                        }
+                    }))
+
+                    return { key, value: t?.map(t => `<@${t}>`).join('\n') }
+                })
+        );
 
         Bot.sendMessage(this.game.channel, {
             title: 'Card effects',

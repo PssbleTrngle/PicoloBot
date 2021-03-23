@@ -1,8 +1,9 @@
 import { Message, TextChannel } from "discord.js";
 import Bot, { IEmbed } from "./bot";
 import Config from "./config";
-import Stats from "./database/models/Stats";
+import Player from "./database/models/Player";
 import Game from "./database/models/Game";
+import { print } from "./console";
 
 interface Parameters {
     [key: string]: {
@@ -83,10 +84,7 @@ export function execute(message: Message & { channel: TextChannel }): boolean {
         const [identifier, ...args] = cmd.split(' ').map(s => s.trim());
         const command = Commands[identifier];
 
-        if (command) {
-            Bot.log('debug', `**${author.tag}** executed command ${cmd}`)
-            callCommand(message, command, args).catch(e => Bot.logError(e));
-        }
+        if (command) callCommand(message, command, args).catch(e => Bot.logError(e));
         else Bot.sendMessage(channel, { level: 'error', title: 'Unknown command', user: author });
 
         return true;
@@ -210,14 +208,15 @@ const Commands: { [key: string]: Command } = {
             const u = user ? await Bot.parseUser(user) : author;
             if (!u) throw new UserError(`Unkown user *${user}*`)
 
-            const stats = await Stats.findOrCreate(u.id);
+            const player = await Player.findOrCreate(u.id);
 
             return {
                 title: 'Statists',
                 user: u,
                 fields: {
-                    'Games Played': `:game_die: ${stats.games}`,
-                    'Shots taken': `:beer: ${stats.shots}`,
+                    'Games Played': `:game_die: ${player.total.games}`,
+                    'Sips sipped': `:beer: ${player.total.sips}`,
+                    'Shots shotted': `:tropical_drink:  ${player.total.shots}`,
                 },
             }
         }
@@ -226,6 +225,8 @@ const Commands: { [key: string]: Command } = {
         help: () => 'Skips the current card',
         execute: async (_, { channel, author, guild }) => {
             if (guild?.ownerID !== author.id) throw new UserError('You do not have this permission')
+
+            print('debug', (await Game.find()).map(g => g.channel).join())
 
             const game = await Game.findOrError(channel.id);
             const skipped = await game.skipCard();

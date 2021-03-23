@@ -1,12 +1,12 @@
-import { TextChannel, User, Channel } from 'discord.js';
-import { BaseEntity, Column, Entity, JoinTable, ManyToMany, DeepPartial, OneToMany, OneToOne, ObjectType, JoinColumn } from 'typeorm';
+import { TextChannel, User } from 'discord.js';
+import { BaseEntity, Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToOne } from 'typeorm';
 import Bot from '../../bot';
 import { UserError } from '../../commands';
 import Config from '../../config';
-import Card from './Card';
-import Stats from './Stats';
-import PlayedCard from './PlayedCard';
 import { print } from '../../console';
+import Card from './Card';
+import PlayedCard from './PlayedCard';
+import Player from './Player';
 
 @Entity()
 export default class Game extends BaseEntity {
@@ -14,11 +14,11 @@ export default class Game extends BaseEntity {
     @Column({ type: 'text', primary: true })
     channel!: string;
 
-    @ManyToMany(() => Stats, { eager: true, cascade: true })
+    @ManyToMany(() => Player, { eager: true, cascade: true })
     @JoinTable()
-    players?: Stats[]
+    players?: Player[]
 
-    @OneToOne(() => PlayedCard, c => c.game, { nullable: true, onDelete: 'CASCADE' })
+    @OneToOne(() => PlayedCard, c => c.game, { nullable: true, onDelete: 'SET NULL' })
     @JoinColumn()
     currentCard!: Promise<PlayedCard | undefined>;
 
@@ -30,7 +30,7 @@ export default class Game extends BaseEntity {
     recentCards!: Promise<Card[]> | Card[];
 
 
-    getPlayers(): Stats[] {
+    getPlayers(): Player[] {
         return this.players ?? [];
     }
 
@@ -41,11 +41,12 @@ export default class Game extends BaseEntity {
     }
 
     async start(): Promise<void> {
-        if (Config.minPlayers > this.getPlayers().length) throw new UserError(`Not enough players ${this.playerProgress()}`)
-
-        await this.playNextCard();
+        if (Config.minPlayers > this.getPlayers().length)
+            throw new UserError(`Not enough players ${this.playerProgress()}`)
 
         this.running = true;
+        await this.playNextCard();
+
         await this.save();
     }
 
@@ -57,7 +58,10 @@ export default class Game extends BaseEntity {
             Bot.forChannel(this.channel)?.addRole(user, Config.playerRole);
         }
 
-        this.getPlayers().push(await Stats.findOrCreate(user.id));
+        const player = await Player.findOrCreate(user.id);
+        await player.updateStats();
+        player.current.games = 1;
+        this.getPlayers().push(player);
         await this.save();
     }
 
@@ -84,10 +88,14 @@ export default class Game extends BaseEntity {
     }
 
     async stop(): Promise<boolean> {
+        print('debug', 'Game stopped')
+
         const { playerRole } = Config;
         if (playerRole) this.getPlayers().forEach(p =>
             Bot.forChannel(this.channel)?.removeRole(p.id, playerRole)
         );
+
+        await Promise.all(this.getPlayers().map(p => p.updateStats()))
 
         await this.remove();
         return true;
@@ -121,8 +129,7 @@ export default class Game extends BaseEntity {
     }
 
     async playNextCard(): Promise<void> {
-
-        print('debug', `Next card played in ${this.channel}`);
+        if (!this.running) throw new UserError('Game has not started yet')
 
         const recent = await this.recentCards;
         const next = await this.nextCard(recent);

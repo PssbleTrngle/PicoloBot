@@ -12,7 +12,10 @@ export type IEmbed = {
     color?: number;
     fields?: {
         [key: string]: string
-    }
+    } | {
+        key: string,
+        value: string,
+    }[]
 }
 
 function isDM(msg: Message): msg is Message & { channel: DMChannel } {
@@ -45,7 +48,7 @@ class DiscordBot {
             if (channel instanceof TextChannel) this.sendMessage(channel, { level, title, message });
         }
 
-        const c = consoleMessage ?? message;
+        const c = consoleMessage ?? message?.replace('*', '');
         if (title) print(level, title)
         if (c) print(level, c)
     }
@@ -54,18 +57,20 @@ class DiscordBot {
         this.log('error', error.message, '```typescript\n' + error.stack + '\n```', error.stack);
     }
 
-    async sendMessage(channel: ChannelResolvable, { message, title, user, level, fields, ...m }: IEmbed) {
+    async sendMessage(channel: ChannelResolvable, { message, title, user, level, ...m }: IEmbed) {
         const color = m.color ?? Levels[level ?? 'success'][0];
         const description = Array.isArray(message) ? message.join('\n') : message;
         const author = user && { icon_url: user.avatarURL(), name: user.username };
 
         const c = this.client.channels.resolve(channel);
 
+        const fields = m.fields && (Array.isArray(m.fields)
+            ? m.fields.map(f => ({ name: f.key, value: f.value }))
+            : Object.keys(m.fields).map(name => ({ name, value: (m.fields as any)[name] })))
+            .map(f => ({ ...f, inline: true }))
+
         if (c instanceof TextChannel || c instanceof DMChannel) c.send({
-            embed: {
-                title, description, color, author,
-                fields: fields && Object.keys(fields).map(name => ({ name, inline: true, value: fields[name] }))
-            }
+            embed: { title, description, color, author, fields }
         })
     }
 

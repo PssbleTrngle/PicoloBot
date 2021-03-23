@@ -1,18 +1,25 @@
 import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import Card from "./Card";
+import Player from "./Player";
 import Stats from "./Stats";
 
-export const Types = {
+export const Types: {
+    [key: string]: {
+        value: boolean;
+        stat?: keyof Stats;
+    }
+} = {
     sip: {
         value: true,
-        stat: (s: Stats) => s.sips,
+        stat: 'sips',
     },
     ex: {
         value: false,
+        stat: 'ex',
     },
     shot: {
         value: true,
-        stat: (s: Stats) => s.shots,
+        stat: 'shots',
     },
 }
 
